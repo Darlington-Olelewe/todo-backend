@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -16,12 +17,30 @@ public class JwtTokenProvider {
 
     private String jwtSecret = "secret";
 
-    private final int jwtExpirationInMin = 30;
+    @Value("${token.refresh}")
+    private int jwtExpirationInMinRefresh;
+    @Value("${token.access}")
+    private int jwtExpirationInMinAccess;
 
-    public String generateToken(Authentication authentication){
+    public String generateTokenAcess(Authentication authentication){
         String username = authentication.getName();
         Date currentDate = new Date();
-        Date expirationDate = new Date(currentDate.getTime() + (long)jwtExpirationInMin * 60 * 1000);
+        Date expirationDate = new Date(currentDate.getTime() + (long)jwtExpirationInMinAccess * 60 * 1000);
+
+        String token = Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(expirationDate)
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .compact();
+
+        return "Bearer " + token;
+    }
+
+    public String generateTokenRefresh(Authentication authentication){
+        String username = authentication.getName();
+        Date currentDate = new Date();
+        Date expirationDate = new Date(currentDate.getTime() + (long)jwtExpirationInMinRefresh * 60 * 1000);
 
         String token = Jwts.builder()
                 .setSubject(username)

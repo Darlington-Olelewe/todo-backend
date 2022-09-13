@@ -54,6 +54,9 @@ public class PersonController {
     public ResponseEntity<List<Todo>> fetchAllProgress(){
         return todoService.fetchAllProgress();
     }
-
+    @GetMapping("/refresh")
+    public ResponseEntity<LoggedInUser> refeshToken(){
+        return loginService.refresh();
+    }
 
 }

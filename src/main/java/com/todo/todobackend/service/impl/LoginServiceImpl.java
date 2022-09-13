@@ -21,7 +21,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
@@ -32,14 +31,14 @@ public class LoginServiceImpl implements LoginService, TodoService {
     private final JwtTokenProvider jwtTokenProvider;
     private final HttpServletResponse httpServletResponse;
 
-    private final HttpServletRequest httpServletRequest;
     private final PersonRepository personRepo;
     private final PasswordEncoder encoder;
     private final TodoRepository todoRepo;
     @Override
     public ResponseEntity<LoggedInUser> login(LogIn login) {
         Authentication authentication;
-        String token;
+        String accessToken;
+        String refreshToken;
         Person person = null;
 
         try{
@@ -47,8 +46,11 @@ public class LoginServiceImpl implements LoginService, TodoService {
                     login.getEmail(),login.getPassword());
             authentication = authenticationManager.authenticate(auth);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            token = jwtTokenProvider.generateToken(authentication);
-            httpServletResponse.setHeader("Authorization", token);
+            accessToken = jwtTokenProvider.generateTokenAcess(authentication);
+            refreshToken = jwtTokenProvider.generateTokenRefresh(authentication);
+            httpServletResponse.setHeader("Authorization", accessToken);
+            httpServletResponse.setHeader("Authorization-Refresh", refreshToken);
+
             person = personRepo.findPersonByEmail(login.getEmail()).get();
 
         }
@@ -62,7 +64,41 @@ public class LoginServiceImpl implements LoginService, TodoService {
                 .role(person.getRole().name())
                 .email(person.getEmail())
                 .id(person.getId())
-                .token(token)
+                .token(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+        return ResponseEntity.ok(loggedInUser);
+    }
+
+    @Override
+    public ResponseEntity<LoggedInUser> refresh() {
+        String accessToken;
+        String refreshToken;
+        Person person = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        try{
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            accessToken = jwtTokenProvider.generateTokenAcess(authentication);
+            refreshToken = jwtTokenProvider.generateTokenRefresh(authentication);
+            httpServletResponse.setHeader("Authorization", accessToken);
+            UserDetails user = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+            person = personRepo.findPersonByEmail(user.getUsername()).get();
+
+        }
+        catch (BadCredentialsException ex){
+            throw new RuntimeException("un able to login");
+        }
+
+        LoggedInUser loggedInUser = LoggedInUser.builder()
+                .firstName(person.getFirstName())
+                .lastName(person.getLastName())
+                .role(person.getRole().name())
+                .email(person.getEmail())
+                .id(person.getId())
+                .token(accessToken)
+                .refreshToken(refreshToken)
                 .build();
         return ResponseEntity.ok(loggedInUser);
     }

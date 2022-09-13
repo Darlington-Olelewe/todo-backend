@@ -6,4 +6,5 @@ import org.springframework.http.ResponseEntity;
 
 public interface LoginService {
     ResponseEntity<LoggedInUser> login(LogIn logIn);
+    ResponseEntity<LoggedInUser> refresh();
 }

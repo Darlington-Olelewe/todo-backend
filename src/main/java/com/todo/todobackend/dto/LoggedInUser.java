@@ -15,6 +15,7 @@ public class LoggedInUser {
     private String firstName;
     private String lastName;
     private String token;
+    private String refreshToken;
     private String role;
     private String email;
 }
